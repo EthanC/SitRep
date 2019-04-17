@@ -102,3 +102,15 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Visual Studio Code
+.vscode/
+
+# Credentials
+configuration.json
+
+# Data
+data/
+
+# ImgKit
+wkhtmltoimage.exe

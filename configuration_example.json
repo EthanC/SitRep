@@ -1,0 +1,15 @@
+{
+    "webhook": {
+        "url": "https://discordapp.com/api/webhooks/XXX/XXXXXXXXX",
+        "username": "SitRep",
+        "avatarURL": "https://i.imgur.com/3HxCNW1.png",
+        "color": "66bb6a"
+    },
+    "interval": 3600,
+    "imgurClientId": "XXXXXXXXXXXXXXX",
+    "urls": {
+        "full": [
+            "https://website.com/endpoint"
+        ]
+    }
+}
