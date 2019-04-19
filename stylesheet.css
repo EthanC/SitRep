@@ -32,13 +32,12 @@ td:nth-child(4) {
 }
 
 /* Table rows */
-tr {
+table tr {
     background-color: #2e3136;
 }
 
 /* Alternate table row colors */
-tbody:nth-child(even) tr:nth-child(even),
-tbody:nth-child(odd) tr:nth-child(odd) {
+table tr:nth-child(even) {
     background-color: #35383c;
 }
 
