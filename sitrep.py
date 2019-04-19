@@ -109,7 +109,7 @@ class SitRep:
         the provided raw data.
         """
 
-        with open(f"data/{filename}.json", "r") as oldFile:
+        with open(f"data/{filename}.json", "r", encoding="utf-8") as oldFile:
             oldData = oldFile.read()
 
             if MD5(oldData) == MD5(newData):
