@@ -37,12 +37,9 @@ tr {
 }
 
 /* Alternate table row colors */
-tbody:nth-child(even) tr {
+tbody:nth-child(even) tr:nth-child(even),
+tbody:nth-child(odd) tr:nth-child(odd) {
     background-color: #35383c;
-}
-
-tbody:nth-child(odd) tr {
-    background-color: #2e3136;
 }
 
 /* Table data */
