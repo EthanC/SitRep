@@ -4,67 +4,101 @@ from datetime import datetime
 
 import requests
 
-
-def GET(url: str, headers={}):
-    """
-    Return the response of a successful HTTP GET request to the specified
-    URL with the optionally provided header values.
-    """
-
-    res = requests.get(url, headers=headers)
-
-    # HTTP 200 (OK)
-    if res.status_code == 200:
-        return res.text
-    else:
-        return None
+from logger import Log
 
 
-def POST(url: str, data: dict):
-    """
-    Send an HTTP POST request containing the provided data to the
-    specified URL.
-    """
+class Utility:
+    """Class containing utilitarian functions intended to reduce duplicate code."""
 
-    headers = {"content-type": "application/json"}
-    data = json.dumps(data)
+    def GET(self, url: str, headers={}):
+        """
+        Return the response of a successful HTTP GET request to the specified
+        URL with the optionally provided header values.
+        """
 
-    req = requests.post(url, headers=headers, data=data)
+        res = requests.get(url, headers=headers)
 
-    # HTTP 204 (No Content)
-    if req.status_code == 204:
-        return True
-    else:
-        return f"{req.text} (HTTP {req.status_code})"
+        # HTTP 200 (OK)
+        if res.status_code == 200:
+            return res.text
+        else:
+            Log.Error(self, f"Failed to GET {url} (HTTP {res.status_code})")
 
+            return None
 
-def UploadImage(clientId: str, image: bytes):
-    """Return the url of the provided image uploaded to Imgur."""
+    def POST(self, url: str, data: dict):
+        """
+        Send an HTTP POST request containing the provided data to the
+        specified URL.
+        """
 
-    payload = {"image": image}
-    headers = {"Authorization": f"Client-ID {clientId}"}
+        headers = {"content-type": "application/json"}
+        data = json.dumps(data)
 
-    req = requests.post("https://api.imgur.com/3/image", headers=headers, data=payload)
+        req = requests.post(url, headers=headers, data=data)
 
-    if req.status_code == 200:
-        return json.loads(req.text)["data"]["link"]
-    else:
-        return None
+        # HTTP 204 (No Content)
+        if req.status_code == 204:
+            return True
+        else:
+            return req.status_code
 
+    def UploadImage(self, clientId: str, image: bytes):
+        """Return the url of the provided image uploaded to Imgur."""
 
-def MD5(input: str):
-    """Return an MD5 hash of the provided string."""
+        payload = {"image": image}
+        headers = {"Authorization": f"Client-ID {clientId}"}
 
-    return hashlib.md5(input.encode("utf-8")).hexdigest()
+        req = requests.post(
+            "https://api.imgur.com/3/image", headers=headers, data=payload
+        )
 
+        # HTTP 200 (OK)
+        if req.status_code == 200:
+            return json.loads(req.text)["data"]["link"]
+        else:
+            Log.Error(self, f"Failed to upload image (HTTP {req.status_code})")
 
-def now():
-    """Return the current local time in 12-hour format."""
+            return None
 
-    return datetime.now().strftime("%I:%M:%S")
+    def MD5(self, input: str):
+        """Return an MD5 hash of the provided string."""
 
+        return hashlib.md5(input.encode("utf-8")).hexdigest()
 
-def nowTimestamp():
-    """Return the current utc time in ISO8601 timestamp format."""
+    def nowISO(self):
+        """Return the current utc time in ISO8601 timestamp format."""
 
-    return datetime.utcnow().isoformat()
+        return datetime.utcnow().isoformat()
+
+    def WriteFile(
+        self, filename: str, extension: str, data: str, directory: str = "data/"
+    ):
+        """
+        Write the provided data to the specified file.
+        
+        Optionally specify a relative directory, defaults to `data/`.
+        """
+
+        try:
+            with open(
+                f"{directory}{filename}.{extension}", "w", encoding="utf-8"
+            ) as file:
+                file.write(data)
+        except Exception as e:
+            Log.Error(self, f"Failed to write {filename}.{extension}, {e}")
+
+    def ReadFile(self, filename: str, extension: str, directory: str = "data/"):
+        """
+        Read and return the contents of the specified file.
+
+        Optionally specify a relative directory, defaults to `data/`.
+        """
+
+        try:
+            with open(
+                f"{directory}{filename}.{extension}", "r", encoding="utf-8"
+            ) as file:
+                return file.read()
+        except Exception as e:
+            Log.Error(self, f"Failed to read {filename}.{extension}, {e}")

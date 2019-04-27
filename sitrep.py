@@ -5,9 +5,9 @@ import sys
 import time
 
 import imgkit
-from colorama import Fore, init
 
-from util import GET, MD5, POST, UploadImage, now, nowTimestamp
+from logger import Log
+from util import Utility
 
 
 class SitRep:
@@ -17,62 +17,39 @@ class SitRep:
     """
 
     def main(self):
-        # Initialize Colorama
-        init(autoreset=True)
+        Log.Intro(self, "SitRep - JSON file-watching diff service")
+        Log.Intro(self, "https://github.com/EthanC/SitRep\n")
 
         initialized = SitRep.LoadConfiguration(self)
 
         while initialized is True:
             for url in self.fullURLs:
-                filename = MD5(url)
-                data = GET(url)
+                filename = Utility.MD5(self, url)
+                data = Utility.GET(self, url)
 
-                if data == None:
-                    print(Fore.RED + f"[{now()}] Failed to GET {url}")
-                else:
-                    # Determine if URL is already being watched
+                if data is not None:
                     if os.path.isfile(f"data/{filename}.json") == False:
-                        print(
-                            Fore.BLUE
-                            + f"[{now()}] {filename}.json does not exist, creating it"
-                        )
+                        Log.Info(self, f"{filename}.json does not exist, creating it")
 
-                        try:
-                            with open(
-                                f"data/{filename}.json", "w", encoding="utf-8"
-                            ) as file:
-                                file.write(data)
-                        except Exception as e:
-                            print(Fore.RED + f"Failed to create {filename}.json. {e}.")
-                    # URL is already being watched, diff it
+                        Utility.WriteFile(self, filename, "json", data)
                     else:
                         diff = SitRep.Diff(self, filename, data)
 
-                        if diff == None:
-                            pass
-                        else:
-                            print(f"[{now()}] {filename} has changed")
+                        if diff is not None:
+                            Log.Print(self, f"{filename} has changed")
 
-                            diff = UploadImage(self.imgurClientId, diff)
+                            diff = Utility.UploadImage(self, self.imgurClientId, diff)
 
-                            if diff == None:
-                                print(Fore.RED + f"Failed to upload {filename} diff")
-                            else:
-                                SitRep.Notify(self, filename, url, diff)
+                            if diff is not None:
+                                notified = SitRep.Notify(self, filename, url, diff)
 
-                                try:
-                                    with open(
-                                        f"data/{filename}.json", "w", encoding="utf-8"
-                                    ) as file:
-                                        file.write(data)
-                                except Exception as e:
-                                    print(
-                                        Fore.RED
-                                        + f"Failed to save latest {filename}.json. {e}."
-                                    )
+                                # Debug
+                                if notified == True:
+                                    Utility.WriteFile(self, filename, "json", data)
 
-            print(Fore.GREEN + f"[{now()}] Sleeping for {self.interval}s...")
+            Log.Success(self, f"Sleeping for {self.interval}s...")
             time.sleep(self.interval)
+            initialized = SitRep.LoadConfiguration(self)
 
     def LoadConfiguration(self):
         """
@@ -81,27 +58,22 @@ class SitRep:
         Return True if configuration sucessfully loaded, otherwise return False.
         """
 
+        configuration = json.loads(Utility.ReadFile(self, "configuration", "json", ""))
+
         try:
-            with open("configuration.json", "r") as configurationFile:
-                configuration = json.load(configurationFile)
+            self.webhook = configuration["webhook"]["url"]
+            self.username = configuration["webhook"]["username"]
+            self.avatar = configuration["webhook"]["avatarURL"]
+            self.color = configuration["webhook"]["color"]
+            self.interval = configuration["interval"]
+            self.imgurClientId = configuration["imgurClientId"]
+            self.fullURLs = configuration["urls"]["full"]
 
-                self.webhook = configuration["webhook"]["url"]
-                self.username = configuration["webhook"]["username"]
-                self.avatar = configuration["webhook"]["avatarURL"]
-                self.color = configuration["webhook"]["color"]
-                self.interval = configuration["interval"]
-                self.imgurClientId = configuration["imgurClientId"]
-                self.fullURLs = configuration["urls"]["full"]
-                # self.keyURLs = configuration["urls"]["keys"]
-                # self.valueURLs = configuration["urls"]["values"]
+            Log.Success(self, "Loaded configuration")
 
-                print(Fore.GREEN + f"[{now()}] Configuration loaded")
-
-                return True
+            return True
         except Exception as e:
-            print(Fore.RED + f"[{now()}] Failed to load configuration. {e}")
-
-            return False
+            Log.Error(self, f"Failed to load configuration, {e}")
 
     def Diff(self, filename: str, newData: str):
         """
@@ -109,34 +81,28 @@ class SitRep:
         the provided raw data.
         """
 
-        with open(f"data/{filename}.json", "r", encoding="utf-8") as oldFile:
-            oldData = oldFile.read()
+        oldData = Utility.ReadFile(self, filename, "json")
 
-            if MD5(oldData) == MD5(newData):
+        if Utility.MD5(self, oldData) == Utility.MD5(self, newData):
+            return None
+        else:
+            try:
+                # Format the JSON for an accurate diff report
+                oldData = json.dumps(json.loads(oldData), indent=2).splitlines()
+                newData = json.dumps(json.loads(newData), indent=2).splitlines()
+
+                diff = difflib.HtmlDiff(tabsize=4).make_table(oldData, newData)
+
+                options = {"encoding": "utf-8", "log-level": "none"}
+                diff = imgkit.from_string(
+                    diff, False, options=options, css="stylesheet.css"
+                )
+
+                return diff
+            except Exception as e:
+                Log.Error(self, f"Failed to generate diff for {filename}, {e}")
+
                 return None
-            else:
-                try:
-                    # Format the JSON for an accurate diff report
-                    oldData = json.dumps(json.loads(oldData), indent=2).splitlines()
-                    newData = json.dumps(json.loads(newData), indent=2).splitlines()
-
-                    diff = difflib.HtmlDiff(tabsize=4).make_table(
-                        oldData, newData, context=True, numlines=0
-                    )
-
-                    options = {"quiet": None}
-                    diff = imgkit.from_string(
-                        diff, False, options=options, css="stylesheet.css"
-                    )
-
-                    return diff
-                except Exception as e:
-                    print(
-                        Fore.RED
-                        + f"[{now()}] Failed to generate diff for {filename}. {e}"
-                    )
-
-                    return None
 
     def Notify(self, filename: str, url: str, image: str):
         """
@@ -153,24 +119,23 @@ class SitRep:
                     "author": {
                         "name": "SitRep",
                         "url": "https://github.com/EthanC/SitRep",
-                        "icon_url": self.avatar,
+                        "icon_url": "https://github.com/EthanC/SitRep/raw/master/SitRepPro.png",
                     },
                     "description": url,
                     "image": {"url": image},
                     "footer": {"text": filename},
-                    "timestamp": nowTimestamp(),
+                    "timestamp": Utility.nowISO(self),
                 }
             ],
         }
 
-        notified = POST(self.webhook, data)
+        status = Utility.POST(self, self.webhook, data)
 
-        if notified == True:
-            pass
+        if status == True:
+            return True
         else:
-            print(
-                Fore.RED
-                + f"[{now()}] Failed to notify of changes in {filename}. {notified}."
+            Log.Error(
+                self, f"Failed to notify of changes in {filename} (HTTP {status})"
             )
 
 
