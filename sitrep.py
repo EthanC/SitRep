@@ -43,7 +43,6 @@ class SitRep:
                             if diff is not None:
                                 notified = SitRep.Notify(self, filename, url, diff)
 
-                                # Debug
                                 if notified == True:
                                     Utility.WriteFile(self, filename, "json", data)
 
