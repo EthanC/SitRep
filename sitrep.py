@@ -90,7 +90,9 @@ class SitRep:
                 oldData = json.dumps(json.loads(oldData), indent=2).splitlines()
                 newData = json.dumps(json.loads(newData), indent=2).splitlines()
 
-                diff = difflib.HtmlDiff(tabsize=4).make_table(oldData, newData)
+                diff = difflib.HtmlDiff(tabsize=4).make_table(
+                    oldData, newData, context=True, numlines=0
+                )
 
                 options = {"encoding": "utf-8", "quiet": ""}
                 diff = imgkit.from_string(
