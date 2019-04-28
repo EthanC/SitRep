@@ -92,7 +92,7 @@ class SitRep:
 
                 diff = difflib.HtmlDiff(tabsize=4).make_table(oldData, newData)
 
-                options = {"encoding": "utf-8", "log-level": "none"}
+                options = {"encoding": "utf-8", "quiet": ""}
                 diff = imgkit.from_string(
                     diff, False, options=options, css="stylesheet.css"
                 )
