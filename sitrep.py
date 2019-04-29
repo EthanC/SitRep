@@ -74,6 +74,8 @@ class SitRep:
         except Exception as e:
             Log.Error(self, f"Failed to load configuration, {e}")
 
+            return False
+
     def Diff(self, filename: str, newData: str):
         """
         Return a diff report of the specified local file compared to
@@ -82,9 +84,7 @@ class SitRep:
 
         oldData = Utility.ReadFile(self, filename, "json")
 
-        if Utility.MD5(self, oldData) == Utility.MD5(self, newData):
-            return None
-        else:
+        if Utility.MD5(self, oldData) != Utility.MD5(self, newData):
             try:
                 # Format the JSON for an accurate diff report
                 oldData = json.dumps(json.loads(oldData), indent=2).splitlines()
@@ -104,6 +104,8 @@ class SitRep:
                 Log.Error(self, f"Failed to generate diff for {filename}, {e}")
 
                 return None
+        else:
+            return None
 
     def Notify(self, filename: str, url: str, image: str):
         """
@@ -138,6 +140,8 @@ class SitRep:
             Log.Error(
                 self, f"Failed to notify of changes in {filename} (HTTP {status})"
             )
+
+            return False
 
 
 if __name__ == "__main__":
