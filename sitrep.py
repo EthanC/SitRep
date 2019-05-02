@@ -149,7 +149,10 @@ class SitRep:
             return False
 
     def Clean(self):
-        """ToDo"""
+        """
+        Automatically delete any files stored in the data directory which
+        are no longer watched.
+        """
 
         files = os.listdir("data/")
         watched = []
