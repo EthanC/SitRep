@@ -148,4 +148,5 @@ if __name__ == "__main__":
     try:
         SitRep.main(SitRep)
     except KeyboardInterrupt:
+        Log.Success(SitRep, "Stopping...")
         sys.exit(0)
