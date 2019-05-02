@@ -46,8 +46,12 @@ class SitRep:
                                 if notified == True:
                                     Utility.WriteFile(self, filename, "json", data)
 
+            if self.autoClean == True:
+                SitRep.Clean(self)
+
             Log.Success(self, f"Sleeping for {self.interval}s...")
             time.sleep(self.interval)
+
             initialized = SitRep.LoadConfiguration(self)
 
     def LoadConfiguration(self):
@@ -65,6 +69,7 @@ class SitRep:
             self.avatar = configuration["webhook"]["avatarURL"]
             self.color = configuration["webhook"]["color"]
             self.interval = configuration["interval"]
+            self.autoClean = configuration["autoClean"]
             self.imgurClientId = configuration["imgurClientId"]
             self.fullURLs = configuration["urls"]["full"]
 
@@ -142,6 +147,28 @@ class SitRep:
             )
 
             return False
+
+    def Clean(self):
+        """ToDo"""
+
+        files = os.listdir("data/")
+        watched = []
+        cleaned = 0
+
+        for url in self.fullURLs:
+            watched.append(Utility.MD5(self, url))
+
+        for file in files:
+            filename = file.split(".")[0]
+            extension = file.split(".")[1]
+
+            if filename not in watched:
+                Utility.DeleteFile(self, filename, extension)
+
+                cleaned = cleaned + 1
+
+        if cleaned > 0:
+            Log.Success(self, f"Cleaned {cleaned} unused file(s)")
 
 
 if __name__ == "__main__":

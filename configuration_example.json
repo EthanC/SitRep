@@ -6,6 +6,7 @@
         "color": "66bb6a"
     },
     "interval": 3600,
+    "autoClean": true,
     "imgurClientId": "XXXXXXXXXXXXXXX",
     "urls": {
         "full": [

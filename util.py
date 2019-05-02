@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 from datetime import datetime
 
 import requests
@@ -102,3 +103,11 @@ class Utility:
                 return file.read()
         except Exception as e:
             Log.Error(self, f"Failed to read {filename}.{extension}, {e}")
+
+    def DeleteFile(self, filename: str, extension: str, directory: str = "data/"):
+        """ToDo"""
+
+        try:
+            os.remove(f"{directory}{filename}.{extension}")
+        except Exception as e:
+            Log.Error(self, f"Failed to delete {filename}.{extension}, {e}")
