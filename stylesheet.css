@@ -1,11 +1,8 @@
-/* Global styles
-   Using the * selector is considered a bad practice in typical web
-   development, but it doesn't really matter here.
-*/
+/* Global styles */
 * {
     margin: 0;
     max-width: 100%;
-    font-family: "Roboto Mono", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Roboto Mono", "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
     border: 1px solid #282b30;
 }
 
