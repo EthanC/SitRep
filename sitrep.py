@@ -87,8 +87,8 @@ class SitRep:
         if Utility.MD5(self, oldData) != Utility.MD5(self, newData):
             try:
                 # Format the JSON for an accurate diff report
-                oldData = json.dumps(json.loads(oldData), indent=2).splitlines()
-                newData = json.dumps(json.loads(newData), indent=2).splitlines()
+                oldData = json.dumps(json.loads(oldData), indent=4).splitlines()
+                newData = json.dumps(json.loads(newData), indent=4).splitlines()
 
                 diff = difflib.HtmlDiff(tabsize=4).make_table(
                     oldData, newData, context=True, numlines=0

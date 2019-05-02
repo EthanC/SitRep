@@ -2,7 +2,8 @@
 * {
     margin: 0;
     max-width: 100%;
-    font-family: "Roboto Mono", "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Roboto Mono", "Open Sans", "Helvetica Neue", Helvetica, Arial,
+        sans-serif;
     border: 1px solid #282b30;
 }
 
@@ -59,7 +60,7 @@ td {
 }
 
 .diff_chg {
-    background-color: #ff9800;
+    background-color: #f57c00;
 }
 
 .diff_next {
