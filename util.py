@@ -105,7 +105,11 @@ class Utility:
             Log.Error(self, f"Failed to read {filename}.{extension}, {e}")
 
     def DeleteFile(self, filename: str, extension: str, directory: str = "data/"):
-        """ToDo"""
+        """
+        Delete the specified file.
+
+        Optionally specify a relative directory, defaults to `data/`.
+        """
 
         try:
             os.remove(f"{directory}{filename}.{extension}")
