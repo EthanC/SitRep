@@ -16,35 +16,15 @@ class SitRep:
     and notifies the user via Discord.
     """
 
-    def main(self):
+    def init(self):
         Log.Intro(self, "SitRep - JSON file-watching diff service")
         Log.Intro(self, "https://github.com/EthanC/SitRep\n")
 
         initialized = SitRep.LoadConfiguration(self)
 
         while initialized is True:
-            for url in self.fullURLs:
-                filename = Utility.MD5(self, url)
-                data = Utility.GET(self, url)
-
-                if data is not None:
-                    if os.path.isfile(f"data/{filename}.json") == False:
-                        Log.Info(self, f"{filename}.json does not exist, creating it")
-
-                        Utility.WriteFile(self, filename, "json", data)
-                    else:
-                        diff = SitRep.Diff(self, filename, data)
-
-                        if diff is not None:
-                            Log.Print(self, f"Generated diff for {filename}")
-
-                            diff = Utility.UploadImage(self, self.imgurClientId, diff)
-
-                            if diff is not None:
-                                notified = SitRep.Notify(self, filename, url, diff)
-
-                                if notified == True:
-                                    Utility.WriteFile(self, filename, "json", data)
+            for url in self.jsonURLs:
+                SitRep.main(self, url, "json")
 
             if self.autoClean == True:
                 SitRep.Clean(self)
@@ -54,11 +34,34 @@ class SitRep:
 
             initialized = SitRep.LoadConfiguration(self)
 
+    def main(self, url: str, extension: str):
+        filename = Utility.MD5(self, url)
+        data = Utility.GET(self, url)
+
+        if data is not None:
+            if os.path.isfile(f"data/{filename}.{extension}") == False:
+                Log.Info(self, f"{filename}.{extension} does not exist, creating it")
+
+                Utility.WriteFile(self, filename, extension, data)
+            else:
+                diff = SitRep.Diff(self, filename, extension, data)
+
+                if diff is not None:
+                    Log.Print(self, f"Generated diff for {filename}.{extension}")
+
+                    diff = Utility.UploadImage(self, self.imgurClientId, diff)
+
+                    if diff is not None:
+                        notified = SitRep.Notify(self, filename, extension, url, diff)
+
+                        if notified == True:
+                            Utility.WriteFile(self, filename, extension, data)
+
     def LoadConfiguration(self):
         """
         Set the configuration values specified in configuration.json
         
-        Return True if configuration sucessfully loaded, otherwise return False.
+        Return True if configuration sucessfully loaded.
         """
 
         configuration = json.loads(Utility.ReadFile(self, "configuration", "json", ""))
@@ -71,7 +74,7 @@ class SitRep:
             self.interval = configuration["interval"]
             self.autoClean = configuration["autoClean"]
             self.imgurClientId = configuration["imgurClientId"]
-            self.fullURLs = configuration["urls"]["full"]
+            self.jsonURLs = configuration["urls"]["json"]
 
             Log.Success(self, "Loaded configuration")
 
@@ -79,36 +82,37 @@ class SitRep:
         except Exception as e:
             Log.Error(self, f"Failed to load configuration, {e}")
 
-            return False
-
-    def Diff(self, filename: str, newData: str):
+    def Diff(self, filename: str, extension: str, newData: str):
         """
         Return a diff report of the specified local file compared to
         the provided raw data.
         """
 
-        oldData = Utility.ReadFile(self, filename, "json")
+        oldData = Utility.ReadFile(self, filename, extension)
 
         if Utility.MD5(self, oldData) != Utility.MD5(self, newData):
             try:
-                # Format the JSON for an accurate diff report
-                oldData = json.dumps(json.loads(oldData), indent=4).splitlines()
-                newData = json.dumps(json.loads(newData), indent=4).splitlines()
+                if extension == "json":
+                    # Format the JSON for an accurate diff report
+                    oldData = json.dumps(json.loads(oldData), indent=4).splitlines()
+                    newData = json.dumps(json.loads(newData), indent=4).splitlines()
 
                 diff = difflib.HtmlDiff(tabsize=4).make_table(
                     oldData, newData, context=True, numlines=0
                 )
 
-                options = {"encoding": "utf-8", "quiet": ""}
+                options = {"encoding": "UTF-8", "quiet": ""}
                 diff = imgkit.from_string(
                     diff, False, options=options, css="stylesheet.css"
                 )
 
                 return diff
             except Exception as e:
-                Log.Error(self, f"Failed to generate diff for {filename}, {e}")
+                Log.Error(
+                    self, f"Failed to generate diff for {filename}.{extension}, {e}"
+                )
 
-    def Notify(self, filename: str, url: str, image: str):
+    def Notify(self, filename: str, extension: str, url: str, image: str):
         """
         Send the provided diff report to the configured Discord Webhook
         using a Rich Embed.
@@ -127,7 +131,7 @@ class SitRep:
                     },
                     "description": url,
                     "image": {"url": image},
-                    "footer": {"text": filename},
+                    "footer": {"text": f"{filename}.{extension}"},
                     "timestamp": Utility.nowISO(self),
                 }
             ],
@@ -139,10 +143,8 @@ class SitRep:
             return True
         else:
             Log.Error(
-                self, f"Failed to notify of changes in {filename} (HTTP {status})"
+                self, f"Failed to notify of changes in {filename}.{extension} (HTTP {status})"
             )
-
-            return False
 
     def Clean(self):
         """
@@ -154,7 +156,7 @@ class SitRep:
         watched = []
         cleaned = 0
 
-        for url in self.fullURLs:
+        for url in self.jsonURLs:
             watched.append(Utility.MD5(self, url))
 
         for file in files:
@@ -172,7 +174,7 @@ class SitRep:
 
 if __name__ == "__main__":
     try:
-        SitRep.main(SitRep)
+        SitRep.init(SitRep)
     except KeyboardInterrupt:
         Log.Success(SitRep, "Stopping...")
         sys.exit(0)

@@ -9,8 +9,6 @@
     "autoClean": true,
     "imgurClientId": "XXXXXXXXXXXXXXX",
     "urls": {
-        "full": [
-            "https://website.com/endpoint"
-        ]
+        "json": ["https://website.com/endpoint"]
     }
 }
