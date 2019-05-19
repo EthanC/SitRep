@@ -25,8 +25,6 @@ class Utility:
         else:
             Log.Error(self, f"Failed to GET {url} (HTTP {res.status_code})")
 
-            return None
-
     def POST(self, url: str, data: dict):
         """
         Send an HTTP POST request containing the provided data to the
@@ -59,8 +57,6 @@ class Utility:
             return json.loads(req.text)["data"]["link"]
         else:
             Log.Error(self, f"Failed to upload image (HTTP {req.status_code})")
-
-            return None
 
     def MD5(self, input: str):
         """Return an MD5 hash of the provided string."""

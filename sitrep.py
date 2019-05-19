@@ -36,7 +36,7 @@ class SitRep:
                         diff = SitRep.Diff(self, filename, data)
 
                         if diff is not None:
-                            Log.Print(self, f"{filename} has changed")
+                            Log.Print(self, f"Generated diff for {filename}")
 
                             diff = Utility.UploadImage(self, self.imgurClientId, diff)
 
@@ -107,10 +107,6 @@ class SitRep:
                 return diff
             except Exception as e:
                 Log.Error(self, f"Failed to generate diff for {filename}, {e}")
-
-                return None
-        else:
-            return None
 
     def Notify(self, filename: str, url: str, image: str):
         """
