@@ -50,9 +50,14 @@ class SitRep:
                     Log.Print(self, f"Generated diff for {filename}.{extension}")
 
                     diff = Utility.UploadImage(self, self.imgurClientId, diff)
+                    paste = Utility.UploadPaste(
+                        self, self.pastebinAPIKey, data, filename, extension
+                    )
 
                     if diff is not None:
-                        notified = SitRep.Notify(self, filename, extension, url, diff)
+                        notified = SitRep.Notify(
+                            self, filename, extension, url, diff, paste
+                        )
 
                         if notified == True:
                             Utility.WriteFile(self, filename, extension, data)
@@ -74,6 +79,7 @@ class SitRep:
             self.interval = configuration["interval"]
             self.autoClean = configuration["autoClean"]
             self.imgurClientId = configuration["imgurClientId"]
+            self.pastebinAPIKey = configuration["pastebinAPIKey"]
             self.jsonURLs = configuration["urls"]["json"]
 
             Log.Success(self, "Loaded configuration")
@@ -112,7 +118,7 @@ class SitRep:
                     self, f"Failed to generate diff for {filename}.{extension}, {e}"
                 )
 
-    def Notify(self, filename: str, extension: str, url: str, image: str):
+    def Notify(self, filename: str, extension: str, url: str, image: str, paste: str):
         """
         Send the provided diff report to the configured Discord Webhook
         using a Rich Embed.
@@ -130,6 +136,12 @@ class SitRep:
                         "icon_url": "https://github.com/EthanC/SitRep/raw/master/SitRepPro.png",
                     },
                     "description": url,
+                    "fields": [
+                        {
+                            "name": "Raw",
+                            "value": f"[Pastebin]({paste})"
+                        }
+                    ],
                     "image": {"url": image},
                     "footer": {"text": f"{filename}.{extension}"},
                     "timestamp": Utility.nowISO(self),
@@ -137,13 +149,14 @@ class SitRep:
             ],
         }
 
-        status = Utility.POST(self, self.webhook, data)
+        status = Utility.Webhook(self, self.webhook, data)
 
         if status == True:
             return True
         else:
             Log.Error(
-                self, f"Failed to notify of changes in {filename}.{extension} (HTTP {status})"
+                self,
+                f"Failed to notify of changes in {filename}.{extension} (HTTP {status})",
             )
 
     def Clean(self):

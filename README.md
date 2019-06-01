@@ -11,6 +11,8 @@ SitRep is a JSON file-watching service which generates a diff report and notifie
 
 An [Imgur Client ID](https://apidocs.imgur.com/#intro) is required to upload the diff report images.
 
+A [Pastebin API Key](https://pastebin.com/api#1) is required to upload the raw data to Pastebin.
+
 ## Usage
 
 Open `configuration_example.json` in your preferred text editor, fill in all configurable values. Rename the file to `configuration.json`.

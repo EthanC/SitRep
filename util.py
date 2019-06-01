@@ -25,11 +25,8 @@ class Utility:
         else:
             Log.Error(self, f"Failed to GET {url} (HTTP {res.status_code})")
 
-    def POST(self, url: str, data: dict):
-        """
-        Send an HTTP POST request containing the provided data to the
-        specified URL.
-        """
+    def Webhook(self, url: str, data: dict):
+        """POST the provided data to the specified Discord webhook url."""
 
         headers = {"content-type": "application/json"}
         data = json.dumps(data)
@@ -57,6 +54,27 @@ class Utility:
             return json.loads(req.text)["data"]["link"]
         else:
             Log.Error(self, f"Failed to upload image (HTTP {req.status_code})")
+
+    def UploadPaste(self, apiKey: str, paste: str, filename: str, extension: str):
+        """Return the url of the provided data uploaded to Pastebin."""
+
+        data = {
+            "api_dev_key": apiKey,
+            "api_option": "paste",
+            "api_paste_code": paste,
+            "api_paste_name": f"{filename}.{extension}",
+            "api_paste_format": extension,
+            "api_paste_private": "1",  # Unlisted
+            "api_paste_expire_date": "N",  # Never
+        }
+
+        req = requests.post("https://pastebin.com/api/api_post.php", data=data)
+
+        # HTTP 200 (OK)
+        if req.status_code == 200:
+            return req.text
+        else:
+            Log.Error(self, f"Failed to upload paste (HTTP {req.status_code})")
 
     def MD5(self, input: str):
         """Return an MD5 hash of the provided string."""

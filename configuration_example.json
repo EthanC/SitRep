@@ -8,6 +8,7 @@
     "interval": 3600,
     "autoClean": true,
     "imgurClientId": "XXXXXXXXXXXXXXX",
+    "pastebinAPIKey": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
     "urls": {
         "json": ["https://website.com/endpoint"]
     }
