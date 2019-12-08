@@ -1,15 +1,14 @@
 {
-    "webhook": {
-        "url": "https://discordapp.com/api/webhooks/XXX/XXXXXXXXX",
-        "username": "SitRep",
-        "avatarURL": "https://i.imgur.com/3HxCNW1.png",
-        "color": "66bb6a"
+    "github": {
+        "accessToken": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
     },
-    "interval": 3600,
-    "autoClean": true,
-    "imgurClientId": "XXXXXXXXXXXXXXX",
-    "pastebinAPIKey": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
     "urls": {
-        "json": ["https://website.com/endpoint"]
+        "json": ["https://randomuser.me/api/"]
+    },
+    "webhook": {
+        "avatarURL": "https://i.imgur.com/3HxCNW1.png",
+        "color": "66bb6a",
+        "url": "https://canary.discordapp.com/api/webhooks/XXXXXXXXXXXXXXXXXX/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "username": "SitRep"
     }
 }

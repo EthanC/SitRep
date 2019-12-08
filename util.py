@@ -1,11 +1,12 @@
 import hashlib
 import json
+import logging
 import os
 from datetime import datetime
 
 import requests
 
-from logger import Log
+log = logging.getLogger(__name__)
 
 
 class Utility:
@@ -23,7 +24,7 @@ class Utility:
         if res.status_code == 200:
             return res.text
         else:
-            Log.Error(self, f"Failed to GET {url} (HTTP {res.status_code})")
+            log.error(f"Failed to GET {url} (HTTP {res.status_code})")
 
     def Webhook(self, url: str, data: dict):
         """POST the provided data to the specified Discord webhook url."""
@@ -33,48 +34,7 @@ class Utility:
 
         req = requests.post(url, headers=headers, data=data)
 
-        # HTTP 204 (No Content)
-        if req.status_code == 204:
-            return True
-        else:
-            return req.status_code
-
-    def UploadImage(self, clientId: str, image: bytes):
-        """Return the url of the provided image uploaded to Imgur."""
-
-        payload = {"image": image}
-        headers = {"Authorization": f"Client-ID {clientId}"}
-
-        req = requests.post(
-            "https://api.imgur.com/3/image", headers=headers, data=payload
-        )
-
-        # HTTP 200 (OK)
-        if req.status_code == 200:
-            return json.loads(req.text)["data"]["link"]
-        else:
-            Log.Error(self, f"Failed to upload image (HTTP {req.status_code})")
-
-    def UploadPaste(self, apiKey: str, paste: str, filename: str, extension: str):
-        """Return the url of the provided data uploaded to Pastebin."""
-
-        data = {
-            "api_dev_key": apiKey,
-            "api_option": "paste",
-            "api_paste_code": paste,
-            "api_paste_name": f"{filename}.{extension}",
-            "api_paste_format": extension,
-            "api_paste_private": "1",  # Unlisted
-            "api_paste_expire_date": "N",  # Never
-        }
-
-        req = requests.post("https://pastebin.com/api/api_post.php", data=data)
-
-        # HTTP 200 (OK)
-        if req.status_code == 200:
-            return req.text
-        else:
-            Log.Error(self, f"Failed to upload paste (HTTP {req.status_code})")
+        return req.status_code
 
     def MD5(self, input: str):
         """Return an MD5 hash of the provided string."""
@@ -86,28 +46,11 @@ class Utility:
 
         return datetime.utcnow().isoformat()
 
-    def WriteFile(
-        self, filename: str, extension: str, data: str, directory: str = "data/"
-    ):
-        """
-        Write the provided data to the specified file.
-        
-        Optionally specify a relative directory, defaults to `data/`.
-        """
-
-        try:
-            with open(
-                f"{directory}{filename}.{extension}", "w", encoding="utf-8"
-            ) as file:
-                file.write(data)
-        except Exception as e:
-            Log.Error(self, f"Failed to write {filename}.{extension}, {e}")
-
-    def ReadFile(self, filename: str, extension: str, directory: str = "data/"):
+    def ReadFile(self, filename: str, extension: str, directory: str = ""):
         """
         Read and return the contents of the specified file.
 
-        Optionally specify a relative directory, defaults to `data/`.
+        Optionally specify a relative directory.
         """
 
         try:
@@ -116,16 +59,4 @@ class Utility:
             ) as file:
                 return file.read()
         except Exception as e:
-            Log.Error(self, f"Failed to read {filename}.{extension}, {e}")
-
-    def DeleteFile(self, filename: str, extension: str, directory: str = "data/"):
-        """
-        Delete the specified file.
-
-        Optionally specify a relative directory, defaults to `data/`.
-        """
-
-        try:
-            os.remove(f"{directory}{filename}.{extension}")
-        except Exception as e:
-            Log.Error(self, f"Failed to delete {filename}.{extension}, {e}")
+            log.error(f"Failed to read {filename}.{extension}, {e}")

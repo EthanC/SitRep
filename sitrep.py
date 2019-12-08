@@ -1,13 +1,15 @@
 import difflib
 import json
-import os
-import sys
-import time
+import logging
+from sys import exit
 
-import imgkit
+import coloredlogs
+from github import Github, InputFileContent
 
-from logger import Log
 from util import Utility
+
+log = logging.getLogger(__name__)
+coloredlogs.install(level="INFO", fmt="[%(asctime)s] %(message)s", datefmt="%I:%M:%S")
 
 
 class SitRep:
@@ -16,51 +18,22 @@ class SitRep:
     and notifies the user via Discord.
     """
 
-    def init(self):
-        Log.Intro(self, "SitRep - JSON file-watching diff service")
-        Log.Intro(self, "https://github.com/EthanC/SitRep\n")
+    def main(self):
+        print("SitRep - JSON file-watching diff service")
+        print("https://github.com/EthanC/SitRep\n")
 
         initialized = SitRep.LoadConfiguration(self)
 
-        while initialized is True:
-            for url in self.jsonURLs:
-                SitRep.main(self, url, "json")
+        self.textFormats = ["json", "txt"]
 
-            if self.autoClean == True:
-                SitRep.Clean(self)
+        if initialized is True:
+            self.git = SitRep.LoginGitHub(self)
 
-            Log.Success(self, f"Sleeping for {self.interval}s...")
-            time.sleep(self.interval)
+            if self.git is not None:
+                log.info("Authenticated with GitHub")
 
-            initialized = SitRep.LoadConfiguration(self)
-
-    def main(self, url: str, extension: str):
-        filename = Utility.MD5(self, url)
-        data = Utility.GET(self, url)
-
-        if data is not None:
-            if os.path.isfile(f"data/{filename}.{extension}") == False:
-                Log.Info(self, f"{filename}.{extension} does not exist, creating it")
-
-                Utility.WriteFile(self, filename, extension, data)
-            else:
-                diff = SitRep.Diff(self, filename, extension, data)
-
-                if diff is not None:
-                    Log.Print(self, f"Generated diff for {filename}.{extension}")
-
-                    diff = Utility.UploadImage(self, self.imgurClientId, diff)
-                    paste = Utility.UploadPaste(
-                        self, self.pastebinAPIKey, data, filename, extension
-                    )
-
-                    if diff is not None:
-                        notified = SitRep.Notify(
-                            self, filename, extension, url, diff, paste
-                        )
-
-                        if notified == True:
-                            Utility.WriteFile(self, filename, extension, data)
+                for url in self.jsonURLs:
+                    SitRep.Watch(self, url, "json")
 
     def LoadConfiguration(self):
         """
@@ -69,56 +42,194 @@ class SitRep:
         Return True if configuration sucessfully loaded.
         """
 
-        configuration = json.loads(Utility.ReadFile(self, "configuration", "json", ""))
+        configuration = json.loads(Utility.ReadFile(self, "configuration", "json"))
 
         try:
-            self.webhook = configuration["webhook"]["url"]
-            self.username = configuration["webhook"]["username"]
+            self.accessToken = configuration["github"]["accessToken"]
+            self.jsonURLs = configuration["urls"]["json"]
             self.avatar = configuration["webhook"]["avatarURL"]
             self.color = configuration["webhook"]["color"]
-            self.interval = configuration["interval"]
-            self.autoClean = configuration["autoClean"]
-            self.imgurClientId = configuration["imgurClientId"]
-            self.pastebinAPIKey = configuration["pastebinAPIKey"]
-            self.jsonURLs = configuration["urls"]["json"]
+            self.webhook = configuration["webhook"]["url"]
+            self.username = configuration["webhook"]["username"]
 
-            Log.Success(self, "Loaded configuration")
+            log.info("Loaded configuration")
 
             return True
         except Exception as e:
-            Log.Error(self, f"Failed to load configuration, {e}")
+            log.critical(f"Failed to load configuration, {e}")
 
-    def Diff(self, filename: str, extension: str, newData: str):
+    def LoginGitHub(self):
+        """ToDo"""
+
+        git = Github(self.accessToken)
+
+        try:
+            ratelimit = git.get_rate_limit().core
+        except Exception as e:
+            log.critical(f"Failed to authenticate with GitHub, {e}")
+
+            return
+
+        log.debug(
+            f"Rate Limit - Remaining: {ratelimit.remaining}, Total: {ratelimit.limit}"
+        )
+
+        if ratelimit.remaining < len(self.jsonURLs):
+            log.critical(f"Insufficient GitHub requests remaining, rate limited")
+
+            return
+
+        return git
+
+    def Watch(self, url: str, extension: str):
+        """ToDo"""
+
+        filename = Utility.MD5(self, url)
+        newData = Utility.GET(self, url)
+
+        if (filename is not None) and (newData is not None):
+            gist = SitRep.GetGist(self, filename, extension)
+
+            if gist is False:
+                log.info(f"{url} is not yet watched, creating it")
+                SitRep.CreateGist(self, filename, extension, newData, url)
+            elif gist is not None:
+                if extension in self.textFormats:
+                    diff = SitRep.Diff(
+                        self,
+                        extension,
+                        newData,
+                        gist.files[f"{filename}.{extension}"].content,
+                    )
+
+                    if diff is not None:
+                        log.info(f"{filename}.{extension} has changed")
+
+                        codeblock = SitRep.GenerateCodeblock(self, diff)
+                        additions, deletions = SitRep.CountChanges(self, diff)
+
+                        notified = SitRep.Notify(
+                            self,
+                            filename,
+                            extension,
+                            url,
+                            codeblock,
+                            additions,
+                            deletions,
+                            f"[Gist]({gist.html_url}/revisions)",
+                        )
+
+                        if notified == True:
+                            SitRep.UpdateGist(
+                                self, gist, filename, extension, newData, url
+                            )
+                else:
+                    log.warning(f"{url} is not a supported data type")
+
+    def CreateGist(self, filename: str, extension: str, data: str, url: str):
+        """ToDo"""
+
+        try:
+            data = {
+                f"{filename}.{extension}": InputFileContent(
+                    json.dumps(json.loads(data), indent=4)
+                )
+            }
+            desc = f"Watched by SitRep (https://github.com/EthanC/SitRep) | {url}"
+
+            self.git.get_user().create_gist(False, data, desc)
+        except Exception as e:
+            log.error(f"Failed to create Gist, {e}")
+
+    def GetGist(self, filename: str, extension: str):
+        """ToDo"""
+
+        try:
+            # Hacky solution to getting the desired Gist without
+            # storing its ID locally.
+            for gist in self.git.get_user().get_gists():
+                if list(gist.files)[0] == f"{filename}.{extension}":
+                    return gist
+
+            return False
+        except Exception as e:
+            log.error(f"Failed to get Gist, {e}")
+
+    def UpdateGist(self, gist, filename: str, extension: str, data: str, url: str):
+        """ToDo"""
+
+        desc = f"Watched by SitRep (https://github.com/EthanC/SitRep) | {url}"
+        data = {
+            f"{filename}.{extension}": InputFileContent(
+                json.dumps(json.loads(data), indent=4)
+            )
+        }
+
+        gist.edit(desc, data)
+
+    def Diff(self, extension: str, newData: str, oldData):
         """
         Return a diff report of the specified local file compared to
         the provided raw data.
         """
 
-        oldData = Utility.ReadFile(self, filename, extension)
-
-        if Utility.MD5(self, oldData) != Utility.MD5(self, newData):
-            try:
+        if oldData is not None:
+            if Utility.MD5(self, oldData) != Utility.MD5(self, newData):
                 if extension == "json":
-                    # Format the JSON for an accurate diff report
+                    # Format JSON data for an accurate diff report
                     oldData = json.dumps(json.loads(oldData), indent=4).splitlines()
                     newData = json.dumps(json.loads(newData), indent=4).splitlines()
 
-                diff = difflib.HtmlDiff(tabsize=4).make_table(
-                    oldData, newData, context=True, numlines=0
-                )
+                diff = difflib.Differ().compare(oldData, newData)
 
-                options = {"encoding": "UTF-8", "quiet": ""}
-                diff = imgkit.from_string(
-                    diff, False, options=options, css="stylesheet.css"
-                )
+                return list(diff)
 
-                return diff
-            except Exception as e:
-                Log.Error(
-                    self, f"Failed to generate diff for {filename}.{extension}, {e}"
-                )
+    def GenerateCodeblock(self, diff: list):
+        """ToDo"""
 
-    def Notify(self, filename: str, extension: str, url: str, image: str, paste: str):
+        data = ""
+
+        for line in diff:
+            if (line.startswith("+ ")) or (line.startswith("- ")):
+                # Remove first indentation level on JSON data
+                line = line.replace("+     ", "+ ")
+                line = line.replace("-     ", "- ")
+
+                data += f"{line}\n"
+
+        # The character limit of a Discord Embed Description is 2,048
+        # if codeblock exceeds 1,900 (to be safe), truncate it
+        if len(data) > 1900:
+            data = data[:1900]
+            data = data.rsplit("\n", 1)[0]
+            data += "\n...\n"
+
+        return f"```diff\n{data}```"
+
+    def CountChanges(self, diff: list):
+        """ToDo"""
+
+        additions = 0
+        deletions = 0
+
+        for line in diff:
+            if line.startswith("+ "):
+                additions += 1
+            if line.startswith("- "):
+                deletions += 1
+
+        return additions, deletions
+
+    def Notify(
+        self,
+        filename: str,
+        extension: str,
+        url: str,
+        codeblock: str,
+        additions: int,
+        deletions: int,
+        gist: str,
+    ):
         """
         Send the provided diff report to the configured Discord Webhook
         using a Rich Embed.
@@ -133,16 +244,14 @@ class SitRep:
                     "author": {
                         "name": "SitRep",
                         "url": "https://github.com/EthanC/SitRep",
-                        "icon_url": "https://github.com/EthanC/SitRep/raw/master/SitRepPro.png",
+                        "icon_url": "https://i.imgur.com/YDZgxh2.png",
                     },
-                    "description": url,
+                    "description": f"{url}\n{codeblock}",
                     "fields": [
-                        {
-                            "name": "Raw",
-                            "value": f"[Pastebin]({paste})"
-                        }
+                        {"name": "Additions", "value": additions, "inline": True},
+                        {"name": "Deletions", "value": deletions, "inline": True},
+                        {"name": "Diff", "value": gist, "inline": True,},
                     ],
-                    "image": {"url": image},
                     "footer": {"text": f"{filename}.{extension}"},
                     "timestamp": Utility.nowISO(self),
                 }
@@ -151,43 +260,18 @@ class SitRep:
 
         status = Utility.Webhook(self, self.webhook, data)
 
-        if status == True:
+        # HTTP 204 (No Content)
+        if status == 204:
             return True
         else:
-            Log.Error(
-                self,
-                f"Failed to notify of changes in {filename}.{extension} (HTTP {status})",
+            log.error(
+                f"Failed to notify of changes in {filename}.{extension} (HTTP {status})"
             )
-
-    def Clean(self):
-        """
-        Automatically delete any files stored in the data directory which
-        are no longer watched.
-        """
-
-        files = os.listdir("data/")
-        watched = []
-        cleaned = 0
-
-        for url in self.jsonURLs:
-            watched.append(Utility.MD5(self, url))
-
-        for file in files:
-            filename = file.split(".")[0]
-            extension = file.split(".")[1]
-
-            if filename not in watched:
-                Utility.DeleteFile(self, filename, extension)
-
-                cleaned = cleaned + 1
-
-        if cleaned > 0:
-            Log.Success(self, f"Cleaned {cleaned} unused file(s)")
 
 
 if __name__ == "__main__":
     try:
-        SitRep.init(SitRep)
+        SitRep.main(SitRep)
     except KeyboardInterrupt:
-        Log.Success(SitRep, "Stopping...")
-        sys.exit(0)
+        log.info("Exiting...")
+        exit()
