@@ -173,14 +173,14 @@ class SitRep:
         the provided raw data.
         """
 
-        if oldData is not None:
-            if Utility.MD5(self, oldData) != Utility.MD5(self, newData):
-                if extension == "json":
-                    # Format JSON data for an accurate diff report
-                    oldData = json.dumps(json.loads(oldData), indent=4).splitlines()
-                    newData = json.dumps(json.loads(newData), indent=4).splitlines()
+        if (oldData is not None) and (newData is not None):
+            if extension == "json":
+                # Format JSON data for an accurate diff report
+                oldData = json.dumps(json.loads(oldData), indent=4)
+                newData = json.dumps(json.loads(newData), indent=4)
 
-                diff = difflib.Differ().compare(oldData, newData)
+            if Utility.MD5(self, oldData) != Utility.MD5(self, newData):
+                diff = difflib.Differ().compare(oldData.splitlines(), newData.splitlines())
 
                 return list(diff)
 
