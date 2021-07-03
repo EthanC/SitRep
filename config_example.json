@@ -1,0 +1,33 @@
+{
+    "logging": {
+        "severity": "DEBUG",
+        "discord": {
+            "enable": true,
+            "severity": "WARNING",
+            "webhookUrl": "https://discord.com/api/webhooks/XXXXX/XXXXX"
+        }
+    },
+    "github": {
+        "accessToken": "XXXXX",
+        "public": false
+    },
+    "discord": {
+        "username": "SitRep",
+        "avatarUrl": "https://i.imgur.com/3HxCNW1.png",
+        "webhookUrl": "https://discord.com/api/webhooks/XXXXX/XXXXX"
+    },
+    "dataSources": [
+        {
+            "contentType": "JSON",
+            "url": "https://random-data-api.com/api/color/random_color"
+        },
+        {
+            "contentType": "JSON",
+            "url": "https://random-data-api.com/api/beer/random_beer"
+        },
+        {
+            "contentType": "JSON",
+            "url": "https://random-data-api.com/api/company/random_company"
+        }
+    ]
+}

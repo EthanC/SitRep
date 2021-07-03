@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "SitRep"
+version = "1.0.0"
+description = "An automated data comparison utility which reports its findings via Discord."
+authors = ["Ethan C <EthanC@GitHub.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+httpx = "^0.18.1"
+loguru = "^0.5.3"
+notifiers = "^1.2.1"
+PyGithub = "^1.55"
+
+[tool.poetry.dev-dependencies]
+pylint = "^2.8.3"
+black = "^21.6b0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
