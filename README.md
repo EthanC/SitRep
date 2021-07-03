@@ -1,6 +1,6 @@
 # SitRep
 
-SitRep is an automated data comparison utility which reports its findings via [Discord](https://discord.com/).
+SitRep is an automated data comparison utility that reports its findings via [Discord](https://discord.com/).
 
 <p align="center">
     <img src="https://i.imgur.com/QFJdCoE.png" draggable="false">
@@ -8,7 +8,7 @@ SitRep is an automated data comparison utility which reports its findings via [D
 
 ## Usage
 
-Open `config_example.json` in your preferred text editor and provide the configurable values, then save and rename the file to `config.json`.
+Open `config_example.json` and provide the configurable values, then save and rename the file to `config.json`.
 
 SitRep is designed to be ran using a task scheduler, such as [cron](https://crontab.guru/).
 

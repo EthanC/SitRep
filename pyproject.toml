@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "SitRep"
 version = "1.0.0"
-description = "An automated data comparison utility which reports its findings via Discord."
+description = "An automated data comparison utility that reports its findings via Discord."
 authors = ["Ethan C <EthanC@GitHub.com>"]
 license = "MIT"
 

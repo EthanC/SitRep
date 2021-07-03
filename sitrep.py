@@ -13,7 +13,7 @@ from utils import Utility
 
 class SitRep:
     """
-    SitRep is an automated data comparison utility which reports its
+    SitRep is an automated data comparison utility that reports its
     findings via Discord.
 
     https://github.com/EthanC/SitRep
