@@ -16,7 +16,12 @@ class Utility:
     def GET(self: Any, url: str) -> Optional[str]:
         """Perform an HTTP GET request and return its response."""
 
-        res: Response = httpx.get(url)
+        try:
+            res: Response = httpx.get(url)
+        except Exception as e:
+            logger.error(f"GET Failed {url}, {e}")
+
+            return
 
         status: int = res.status_code
         data: str = res.text
@@ -133,8 +138,11 @@ class Utility:
 
         return hashlib.md5(input.encode("utf-8")).hexdigest()
 
-    def FormatJSON(self: Any, input: str) -> str:
+    def FormatJSON(self: Any, input: Optional[str]) -> Optional[str]:
         """Format the provided JSON string with consistent indentation."""
+
+        if input is None:
+            return
 
         return json.dumps(json.loads(input), indent=4)
 
