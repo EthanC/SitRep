@@ -89,6 +89,11 @@ class Utility:
         except Exception as e:
             logger.error(f"Failed to get Gist {hash}, {e}")
 
+    def GetGistRaw(self: Any, gist: Gist, filename: str) -> Optional[str]:
+        """Return the raw contents of the provided Gist."""
+
+        return Utility.GET(self, gist.files[filename].raw_url)
+
     def CreateGist(self: Any, source: Dict[str, Any]) -> None:
         """
         Create a Gist for the authenticated GitHub user using the provided
@@ -133,8 +138,11 @@ class Utility:
             logger.error(f"Failed to update Gist {hash} ({url}), {e}")
             logger.trace(content)
 
-    def MD5(self: Any, input: str) -> str:
+    def MD5(self: Any, input: Optional[str]) -> Optional[str]:
         """Return an MD5 hash for the provided string."""
+
+        if input is None:
+            return
 
         return hashlib.md5(input.encode("utf-8")).hexdigest()
 
@@ -144,7 +152,11 @@ class Utility:
         if input is None:
             return
 
-        return json.dumps(json.loads(input), indent=4)
+        try:
+            return json.dumps(json.loads(input), indent=4)
+        except Exception as e:
+            logger.error(f"Failed to format JSON data, {e}")
+            logger.trace(input)
 
     def Truncate(
         self: Any,

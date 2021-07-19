@@ -105,13 +105,13 @@ class SitRep:
 
         if format == "JSON":
             source["ext"] = "json"
-            filename: str = source["hash"] + "." + source["ext"]
+            source["filename"] = source["hash"] + "." + source["ext"]
             old["gist"] = Utility.GetGist(self, source["hash"], source["ext"])
             new["raw"] = Utility.FormatJSON(self, Utility.GET(self, source["url"]))
 
             if (new["raw"] is not None) and (old["gist"] is not None):
                 old["raw"] = Utility.FormatJSON(
-                    self, old["gist"].files[filename].content
+                    self, Utility.GetGistRaw(self, old["gist"], source["filename"])
                 )
 
                 SitRep.DiffJSON(self, source)
@@ -124,7 +124,7 @@ class SitRep:
     def DiffJSON(self: Any, source: Dict[str, Any]) -> None:
         """Diff the provided JSON data source."""
 
-        hash: str = source["hash"]
+        filename: str = source["filename"]
         url: str = source["url"]
 
         old: Dict[str, Any] = source["old"]
@@ -134,7 +134,7 @@ class SitRep:
         new["hash"] = Utility.MD5(self, new["raw"])
 
         if old["hash"] == new["hash"]:
-            logger.info(f"No difference found in {hash} ({url})")
+            logger.info(f"No difference found in {filename} ({url})")
 
             return
 
@@ -163,7 +163,7 @@ class SitRep:
                 "title": source["urlTrim"],
                 "description": f"```diff\n{desc}```",
                 "url": url,
-                "hash": hash,
+                "filename": source["filename"],
                 "additions": f"{additions:,}",
                 "deletions": f"{deletions:,}",
                 "diffUrl": source["old"]["gist"].html_url + "/revisions",
@@ -190,7 +190,7 @@ class SitRep:
                     "timestamp": datetime.utcnow().isoformat(),
                     "color": int("66BB6A", base=16),
                     "footer": {
-                        "text": embed.get("hash"),
+                        "text": embed.get("filename"),
                     },
                     "image": {"url": embed.get("imageUrl")},
                     "author": {
