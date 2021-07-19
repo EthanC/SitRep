@@ -19,7 +19,7 @@ class Utility:
         try:
             res: Response = httpx.get(url)
         except Exception as e:
-            logger.error(f"GET Failed {url}, {e}")
+            logger.error(f"GET failed {url}, {e}")
 
             return
 
@@ -32,7 +32,7 @@ class Utility:
         if codes.is_error(status) is False:
             return data
         else:
-            logger.error(f"(HTTP {status}) GET Failed {url}")
+            logger.error(f"(HTTP {status}) GET failed {url}")
             logger.error(data)
 
     def POST(self: Any, url: str, payload: Dict[str, Any]) -> bool:
@@ -51,7 +51,7 @@ class Utility:
         if codes.is_error(status) is False:
             return True
         else:
-            logger.error(f"(HTTP {status}) POST Failed {url}")
+            logger.error(f"(HTTP {status}) POST failed {url}")
             logger.error(data)
 
             return False
@@ -60,7 +60,7 @@ class Utility:
         """Authenticate with GitHub using the configured credentials."""
 
         try:
-            git: Github = Github(self.config["github"]["accessToken"])
+            git: Github = Github(self.config["github"]["accessToken"], timeout=120)
 
             rates: Rate = git.get_rate_limit().core
             reset: str = rates.reset.strftime("%x at %X")
@@ -76,7 +76,7 @@ class Utility:
 
         return git
 
-    def GetGist(self: Any, hash: str, ext: str) -> Optional[Gist]:
+    def GetGist(self: Any, filename: str) -> Optional[Gist]:
         """
         Search the authenticated GitHub user's Gists for the provided
         hash, return it if found.
@@ -84,10 +84,10 @@ class Utility:
 
         try:
             for gist in self.git.get_user().get_gists():
-                if list(gist.files)[0] == f"{hash}.{ext}":
+                if list(gist.files)[0] == filename:
                     return gist
         except Exception as e:
-            logger.error(f"Failed to get Gist {hash}, {e}")
+            logger.error(f"Failed to get Gist {filename}, {e}")
 
     def GetGistRaw(self: Any, gist: Gist, filename: str) -> Optional[str]:
         """Return the raw contents of the provided Gist."""
@@ -100,20 +100,19 @@ class Utility:
         data source.
         """
 
-        hash: str = source["hash"]
-        ext: str = source["ext"]
+        filename: str = source["filename"]
         content: str = source["new"]["raw"]
         url: str = source["url"]
 
-        data: Dict[str, InputFileContent] = {f"{hash}.{ext}": InputFileContent(content)}
+        data: Dict[str, InputFileContent] = {filename: InputFileContent(content)}
         public: bool = self.config["github"].get("public", False)
 
         try:
             self.git.get_user().create_gist(public, data, url)
 
-            logger.success(f"Created Gist {hash} ({url})")
+            logger.success(f"Created Gist {filename} ({url})")
         except Exception as e:
-            logger.error(f"Failed to create Gist {hash} ({url}), {e}")
+            logger.error(f"Failed to create Gist {filename} ({url}), {e}")
             logger.trace(content)
 
     def UpdateGist(self: Any, source: Dict[str, Any]) -> None:
@@ -122,20 +121,19 @@ class Utility:
         data source.
         """
 
-        hash: str = source["hash"]
-        ext: str = source["ext"]
+        filename: str = source["filename"]
         content: str = source["new"]["raw"]
         url: str = source["url"]
         gist: Gist = source["old"]["gist"]
 
-        data: Dict[str, InputFileContent] = {f"{hash}.{ext}": InputFileContent(content)}
+        data: Dict[str, InputFileContent] = {filename: InputFileContent(content)}
 
         try:
             gist.edit(url, data)
 
-            logger.success(f"Updated Gist {hash} ({url})")
+            logger.success(f"Updated Gist {filename} ({url})")
         except Exception as e:
-            logger.error(f"Failed to update Gist {hash} ({url}), {e}")
+            logger.error(f"Failed to update Gist {filename} ({url}), {e}")
             logger.trace(content)
 
     def MD5(self: Any, input: Optional[str]) -> Optional[str]:

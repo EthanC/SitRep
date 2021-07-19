@@ -106,7 +106,7 @@ class SitRep:
         if format == "JSON":
             source["ext"] = "json"
             source["filename"] = source["hash"] + "." + source["ext"]
-            old["gist"] = Utility.GetGist(self, source["hash"], source["ext"])
+            old["gist"] = Utility.GetGist(self, source["filename"])
             new["raw"] = Utility.FormatJSON(self, Utility.GET(self, source["url"]))
 
             if (new["raw"] is not None) and (old["gist"] is not None):
