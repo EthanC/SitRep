@@ -1,6 +1,7 @@
+import base64
 import hashlib
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import httpx
 from github import Github, InputFileContent
@@ -13,7 +14,7 @@ from loguru import logger
 class Utility:
     """Utilitarian functions designed for SitRep."""
 
-    def GET(self: Any, url: str) -> Optional[str]:
+    def GET(self: Any, url: str, raw: bool = False) -> Optional[Union[str, bytes]]:
         """Perform an HTTP GET request and return its response."""
 
         try:
@@ -24,7 +25,11 @@ class Utility:
             return
 
         status: int = res.status_code
-        data: str = res.text
+
+        if raw is True:
+            data: bytes = res.content
+        else:
+            data: str = res.text
 
         logger.debug(f"(HTTP {status}) GET {url}")
         logger.trace(data)
@@ -104,10 +109,11 @@ class Utility:
         content: str = source["new"]["raw"]
         url: str = source["url"]
 
-        data: Dict[str, InputFileContent] = {filename: InputFileContent(content)}
         public: bool = self.config["github"].get("public", False)
 
         try:
+            data: Dict[str, InputFileContent] = {filename: InputFileContent(content)}
+
             self.git.get_user().create_gist(public, data, url)
 
             logger.success(f"Created Gist {filename} ({url})")
@@ -144,6 +150,19 @@ class Utility:
 
         return hashlib.md5(input.encode("utf-8")).hexdigest()
 
+    def Base64(self: Any, input: Optional[bytes]) -> Optional[str]:
+        """Return a Base64 encoded string for the provided bytes."""
+
+        if input is None:
+            return
+
+        return base64.b64encode(input).decode("utf-8")
+
+    def Base64Size(self: Any, input: str) -> int:
+        """Return the size in bytes for the provided Base64 encoded string."""
+
+        return len(base64.b64decode(input))
+
     def FormatJSON(self: Any, input: Optional[str]) -> Optional[str]:
         """Format the provided JSON string with consistent indentation."""
 
@@ -155,6 +174,18 @@ class Utility:
         except Exception as e:
             logger.error(f"Failed to format JSON data, {e}")
             logger.trace(input)
+
+    def CountRange(self: Any, new: int, old: int) -> str:
+        """Calculate the difference between the provided integers."""
+
+        symbol: str = ""
+
+        if new > old:
+            symbol = "+"
+        elif new < old:
+            symbol = "-"
+
+        return f"{symbol}{int(abs(new - old)):,}"
 
     def Truncate(
         self: Any,

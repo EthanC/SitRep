@@ -22,8 +22,8 @@
             "url": "https://random-data-api.com/api/color/random_color"
         },
         {
-            "contentType": "JSON",
-            "url": "https://random-data-api.com/api/beer/random_beer"
+            "contentType": "IMAGE",
+            "url": "https://cataas.com/cat"
         },
         {
             "contentType": "JSON",

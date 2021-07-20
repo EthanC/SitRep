@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from difflib import Differ
 from sys import exit, stderr
-from typing import Any, Dict, Iterator
+from typing import Any, Dict, Iterator, List
 
 from github import Github
 from loguru import logger
@@ -106,6 +106,7 @@ class SitRep:
         if format == "JSON":
             source["ext"] = "json"
             source["filename"] = source["hash"] + "." + source["ext"]
+
             old["gist"] = Utility.GetGist(self, source["filename"])
             new["raw"] = Utility.FormatJSON(self, Utility.GET(self, source["url"]))
 
@@ -115,6 +116,21 @@ class SitRep:
                 )
 
                 SitRep.DiffJSON(self, source)
+            elif (new["raw"] is not None) and (old["gist"] is None):
+                Utility.CreateGist(self, source)
+        elif format == "IMAGE":
+            source["ext"] = "txt"
+            source["filename"] = source["hash"] + "." + source["ext"]
+
+            old["gist"] = Utility.GetGist(self, source["filename"])
+            new["raw"] = Utility.Base64(
+                self, Utility.GET(self, source["url"], raw=True)
+            )
+
+            if (new["raw"] is not None) and (old["gist"] is not None):
+                old["raw"] = Utility.GetGistRaw(self, old["gist"], source["filename"])
+
+                SitRep.DiffImage(self, source)
             elif (new["raw"] is not None) and (old["gist"] is None):
                 Utility.CreateGist(self, source)
         else:
@@ -174,10 +190,65 @@ class SitRep:
         if success is True:
             Utility.UpdateGist(self, source)
 
+    def DiffImage(self: Any, source: Dict[str, Any]) -> None:
+        """Diff the provided image data source."""
+
+        filename: str = source["filename"]
+        url: str = source["url"]
+
+        # Append the current timestamp to the end of the URL as an
+        # attempt to prevent the Discord CDN from serving previously
+        # cached versions of an image.
+        timestamp: str = str(int(datetime.utcnow().timestamp()))
+        imageUrl: str = f"{url}?{timestamp}"
+
+        old: Dict[str, Any] = source["old"]
+        new: Dict[str, Any] = source["new"]
+
+        if old["raw"] == new["raw"]:
+            logger.info(f"No difference found in {filename} ({url})")
+
+            return
+
+        source["urlTrim"] = Utility.Truncate(self, url, 256)
+        old["size"] = Utility.Base64Size(self, old["raw"])
+        new["size"] = Utility.Base64Size(self, new["raw"])
+
+        success: bool = SitRep.Notify(
+            self,
+            {
+                "title": source["urlTrim"],
+                "description": None,
+                "url": url,
+                "filename": source["filename"],
+                "imageUrl": imageUrl,
+                "size": Utility.CountRange(self, new["size"], old["size"]) + " bytes",
+                "diffUrl": source["old"]["gist"].html_url + "/revisions",
+            },
+        )
+
+        # Ensure no changes go without notification
+        if success is True:
+            Utility.UpdateGist(self, source)
+
     def Notify(self: Any, embed: Dict[str, Any]) -> bool:
         """Report diff to the configured Discord webhook."""
 
         diffUrl: str = embed["diffUrl"]
+        fieldKeys: List[str] = ["additions", "deletions", "size"]
+        fields: List[Dict[str, Any]] = []
+
+        for key in fieldKeys:
+            if (val := embed.get(key)) is not None:
+                fields.append({"name": key.capitalize(), "value": val, "inline": True})
+
+        fields.append(
+            {
+                "name": "Diff History",
+                "value": f"[View on GitHub]({diffUrl})",
+                "inline": True,
+            }
+        )
 
         payload: Dict[str, Any] = {
             "username": self.config["discord"]["username"],
@@ -198,23 +269,7 @@ class SitRep:
                         "url": "https://github.com/EthanC/SitRep",
                         "icon_url": "https://i.imgur.com/YDZgxh2.png",
                     },
-                    "fields": [
-                        {
-                            "name": "Additions",
-                            "value": embed.get("additions"),
-                            "inline": True,
-                        },
-                        {
-                            "name": "Deletions",
-                            "value": embed.get("deletions"),
-                            "inline": True,
-                        },
-                        {
-                            "name": "Diff History",
-                            "value": f"[View on GitHub]({diffUrl})",
-                            "inline": True,
-                        },
-                    ],
+                    "fields": fields,
                 }
             ],
         }
