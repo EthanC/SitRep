@@ -26,8 +26,9 @@
             "url": "https://cataas.com/cat"
         },
         {
-            "contentType": "JSON",
-            "url": "https://random-data-api.com/api/company/random_company"
+            "contentType": "TEXT",
+            "fileType": "xml",
+            "url": "https://random-data-api.com/api/company/random_company?is_xml=true"
         }
     ]
 }
