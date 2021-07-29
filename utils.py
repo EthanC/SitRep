@@ -38,7 +38,6 @@ class Utility:
             return data
         else:
             logger.error(f"(HTTP {status}) GET failed {url}")
-            logger.error(data)
 
     def POST(self: Any, url: str, payload: Dict[str, Any]) -> bool:
         """Perform an HTTP POST request and return its status."""
@@ -57,7 +56,6 @@ class Utility:
             return True
         else:
             logger.error(f"(HTTP {status}) POST failed {url}")
-            logger.error(data)
 
             return False
 

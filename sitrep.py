@@ -133,6 +133,19 @@ class SitRep:
                 SitRep.DiffImage(self, source)
             elif (new["raw"] is not None) and (old["gist"] is None):
                 Utility.CreateGist(self, source)
+        elif format == "TEXT":
+            source["ext"] = source.get("fileType", "txt")
+            source["filename"] = source["hash"] + "." + source["ext"]
+
+            old["gist"] = Utility.GetGist(self, source["filename"])
+            new["raw"] = Utility.GET(self, source["url"])
+
+            if (new["raw"] is not None) and (old["gist"] is not None):
+                old["raw"] = Utility.GetGistRaw(self, old["gist"], source["filename"])
+
+                SitRep.DiffText(self, source)
+            elif (new["raw"] is not None) and (old["gist"] is None):
+                Utility.CreateGist(self, source)
         else:
             logger.error(f"Data source with content type {format} is not supported")
             logger.debug(source)
@@ -223,6 +236,59 @@ class SitRep:
                 "filename": source["filename"],
                 "imageUrl": imageUrl,
                 "size": Utility.CountRange(self, new["size"], old["size"]) + " bytes",
+                "diffUrl": source["old"]["gist"].html_url + "/revisions",
+            },
+        )
+
+        # Ensure no changes go without notification
+        if success is True:
+            Utility.UpdateGist(self, source)
+
+    def DiffText(self: Any, source: Dict[str, Any]) -> None:
+        """Diff the provided text data source."""
+
+        filename: str = source["filename"]
+        url: str = source["url"]
+
+        old: Dict[str, Any] = source["old"]
+        new: Dict[str, Any] = source["new"]
+
+        old["hash"] = Utility.MD5(self, old["raw"])
+        new["hash"] = Utility.MD5(self, new["raw"])
+
+        if old["hash"] == new["hash"]:
+            logger.info(f"No difference found in {filename} ({url})")
+
+            return
+
+        diff: Iterator[str] = Differ().compare(
+            old["raw"].splitlines(), new["raw"].splitlines()
+        )
+
+        desc: str = ""
+        additions: int = 0
+        deletions: int = 0
+
+        for line in diff:
+            if line.startswith("+ "):
+                additions += 1
+                desc += f"{line}\n"
+            elif line.startswith("- "):
+                deletions += 1
+                desc += f"{line}\n"
+
+        desc = Utility.Truncate(self, desc, 4048, split="\n")
+        source["urlTrim"] = Utility.Truncate(self, url, 256)
+
+        success: bool = SitRep.Notify(
+            self,
+            {
+                "title": source["urlTrim"],
+                "description": f"```diff\n{desc}```",
+                "url": url,
+                "filename": source["filename"],
+                "additions": f"{additions:,}",
+                "deletions": f"{deletions:,}",
                 "diffUrl": source["old"]["gist"].html_url + "/revisions",
             },
         )

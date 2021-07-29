@@ -26,6 +26,11 @@ python sitrep.py
 
 -   `url`: string
 
+**Text (Raw Plaintext)**
+
+-   `fileType`: string (optional)
+-   `url`: string
+
 ## Credits
 
 -   Activision / Infinity Ward: [Call of Duty: Modern Warfare 3 SitRep Pro Perk icon](https://callofduty.fandom.com/wiki/SitRep)
