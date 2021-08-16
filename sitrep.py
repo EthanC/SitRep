@@ -110,7 +110,9 @@ class SitRep:
             old["gist"] = Utility.GetGist(self, source["filename"])
             new["raw"] = Utility.FormatJSON(self, Utility.GET(self, source["url"]))
 
-            if (new["raw"] is not None) and (old["gist"] is not None):
+            if old["gist"] is False:
+                return
+            elif (new["raw"] is not None) and (old["gist"] is not None):
                 old["raw"] = Utility.FormatJSON(
                     self, Utility.GetGistRaw(self, old["gist"], source["filename"])
                 )
@@ -127,7 +129,9 @@ class SitRep:
                 self, Utility.GET(self, source["url"], raw=True)
             )
 
-            if (new["raw"] is not None) and (old["gist"] is not None):
+            if old["gist"] is False:
+                return
+            elif (new["raw"] is not None) and (old["gist"] is not None):
                 old["raw"] = Utility.GetGistRaw(self, old["gist"], source["filename"])
 
                 SitRep.DiffImage(self, source)
@@ -140,7 +144,9 @@ class SitRep:
             old["gist"] = Utility.GetGist(self, source["filename"])
             new["raw"] = Utility.GET(self, source["url"])
 
-            if (new["raw"] is not None) and (old["gist"] is not None):
+            if old["gist"] is False:
+                return
+            elif (new["raw"] is not None) and (old["gist"] is not None):
                 old["raw"] = Utility.GetGistRaw(self, old["gist"], source["filename"])
 
                 SitRep.DiffText(self, source)

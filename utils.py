@@ -79,10 +79,10 @@ class Utility:
 
         return git
 
-    def GetGist(self: Any, filename: str) -> Optional[Gist]:
+    def GetGist(self: Any, filename: str) -> Optional[Union[Gist, bool]]:
         """
         Search the authenticated GitHub user's Gists for the provided
-        hash, return it if found.
+        hash, Return False upon error.
         """
 
         try:
@@ -91,6 +91,8 @@ class Utility:
                     return gist
         except Exception as e:
             logger.error(f"Failed to get Gist {filename}, {e}")
+
+            return False
 
     def GetGistRaw(self: Any, gist: Gist, filename: str) -> Optional[str]:
         """Return the raw contents of the provided Gist."""
