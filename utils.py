@@ -1,63 +1,105 @@
 import base64
 import hashlib
 import json
+from time import sleep
 from typing import Any, Dict, Optional, Union
 
 import httpx
 from github import Github, InputFileContent
 from github.Gist import Gist
 from github.Rate import Rate
-from httpx import Response, codes
+from httpx import HTTPError, Response, TimeoutException
 from loguru import logger
 
 
 class Utility:
     """Utilitarian functions designed for SitRep."""
 
-    def GET(self: Any, url: str, raw: bool = False) -> Optional[Union[str, bytes]]:
+    def GET(
+        self: Any, url: str, raw: bool = False, isRetry: bool = False
+    ) -> Optional[Union[str, bytes]]:
         """Perform an HTTP GET request and return its response."""
+
+        logger.debug(f"GET {url}")
 
         try:
             res: Response = httpx.get(url)
+            status: int = res.status_code
+            data: str = res.text
+
+            res.raise_for_status()
+        except HTTPError as e:
+            if isRetry is False:
+                logger.debug(f"(HTTP {status}) GET {url} failed, {e}... Retry in 10s")
+
+                sleep(10)
+
+                return Utility.GET(self, url, raw, True)
+
+            logger.error(f"(HTTP {status}) GET {url} failed, {e}")
+
+            return
+        except TimeoutException as e:
+            if isRetry is False:
+                logger.debug(f"GET {url} failed, {e}... Retry in 10s")
+
+                sleep(10)
+
+                return Utility.GET(self, url, raw, True)
+
+            # TimeoutException is common, no need to log as error
+            logger.debug(f"GET {url} failed, {e}")
+
+            return
         except Exception as e:
-            logger.error(f"GET failed {url}, {e}")
+            if isRetry is False:
+                logger.debug(f"GET {url} failed, {e}... Retry in 10s")
+
+                sleep(10)
+
+                return Utility.GET(self, url, raw, True)
+
+            logger.error(f"GET {url} failed, {e}")
 
             return
 
-        status: int = res.status_code
-
-        if raw is True:
-            data: bytes = res.content
-        else:
-            data: str = res.text
-
-        logger.debug(f"(HTTP {status}) GET {url}")
         logger.trace(data)
 
-        if codes.is_error(status) is False:
-            return data
-        else:
-            logger.error(f"(HTTP {status}) GET failed {url}")
+        if raw is True:
+            return res.content
+
+        return data
 
     def POST(self: Any, url: str, payload: Dict[str, Any]) -> bool:
         """Perform an HTTP POST request and return its status."""
 
-        res: Response = httpx.post(
-            url, data=json.dumps(payload), headers={"content-type": "application/json"}
-        )
+        try:
+            res: Response = httpx.post(
+                url,
+                data=json.dumps(payload),
+                headers={"content-type": "application/json"},
+            )
+            status: int = res.status_code
+            data: str = res.text
 
-        status: int = res.status_code
-        data: str = res.text
-
-        logger.debug(f"(HTTP {status}) POST {url}")
-        logger.trace(data)
-
-        if codes.is_error(status) is False:
-            return True
-        else:
-            logger.error(f"(HTTP {status}) POST failed {url}")
+            res.raise_for_status()
+        except HTTPError as e:
+            logger.error(f"(HTTP {status}) POST {url} failed, {e}")
 
             return False
+        except TimeoutException as e:
+            # TimeoutException is common, no need to log as error
+            logger.debug(f"POST {url} failed, {e}")
+
+            return False
+        except Exception as e:
+            logger.error(f"POST {url} failed, {e}")
+
+            return False
+
+        logger.trace(data)
+
+        return True
 
     def GitLogin(self: Any) -> Github:
         """Authenticate with GitHub using the configured credentials."""
@@ -82,7 +124,7 @@ class Utility:
     def GetGist(self: Any, filename: str) -> Optional[Union[Gist, bool]]:
         """
         Search the authenticated GitHub user's Gists for the provided
-        hash, Return False upon error.
+        hash. Return False upon error.
         """
 
         try:
