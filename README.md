@@ -21,15 +21,18 @@ python sitrep.py
 **JSON (JavaScript Object Notation)**
 
 -   `url`: string
+-   `allowRevert`: bool (optional, default `true`)
 
 **Images (PNG, JPG, GIF, etc.)**
 
 -   `url`: string
+-   `allowRevert`: bool (optional, default `true`)
 
 **Text (Raw Plaintext)**
 
--   `fileType`: string (optional)
+-   `fileType`: string (optional, default `txt`)
 -   `url`: string
+-   `allowRevert`: bool (optional, default `true`)
 
 ## Credits
 

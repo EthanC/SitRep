@@ -95,13 +95,16 @@ class SitRep:
         """Prepare to diff the provided data source."""
 
         source["hash"] = Utility.MD5(self, source["url"])
+        source["older"] = {}
         source["old"] = {}
         source["new"] = {}
 
+        older: Dict[str, Any] = source["older"]
         old: Dict[str, Any] = source["old"]
         new: Dict[str, Any] = source["new"]
 
         format: str = source["contentType"].upper()
+        allowRevert: bool = source.get("allowRevert", True)
 
         if format == "JSON":
             source["ext"] = "json"
@@ -113,6 +116,12 @@ class SitRep:
             if old["gist"] is False:
                 return
             elif (new["raw"] is not None) and (old["gist"] is not None):
+                if allowRevert is False:
+                    older["raw"] = Utility.FormatJSON(
+                        self,
+                        Utility.GetGistRaw(self, old["gist"], source["filename"], 1),
+                    )
+
                 old["raw"] = Utility.FormatJSON(
                     self, Utility.GetGistRaw(self, old["gist"], source["filename"])
                 )
@@ -132,6 +141,11 @@ class SitRep:
             if old["gist"] is False:
                 return
             elif (new["raw"] is not None) and (old["gist"] is not None):
+                if allowRevert is False:
+                    older["raw"] = Utility.GetGistRaw(
+                        self, old["gist"], source["filename"], 1
+                    )
+
                 old["raw"] = Utility.GetGistRaw(self, old["gist"], source["filename"])
 
                 SitRep.DiffImage(self, source)
@@ -147,6 +161,11 @@ class SitRep:
             if old["gist"] is False:
                 return
             elif (new["raw"] is not None) and (old["gist"] is not None):
+                if allowRevert is False:
+                    older["raw"] = Utility.GetGistRaw(
+                        self, old["gist"], source["filename"], 1
+                    )
+
                 old["raw"] = Utility.GetGistRaw(self, old["gist"], source["filename"])
 
                 SitRep.DiffText(self, source)
@@ -161,15 +180,24 @@ class SitRep:
 
         filename: str = source["filename"]
         url: str = source["url"]
+        allowRevert: bool = source.get("allowRevert", True)
 
+        older: Dict[str, Any] = source["older"]
         old: Dict[str, Any] = source["old"]
         new: Dict[str, Any] = source["new"]
+
+        if allowRevert is False:
+            older["hash"] = Utility.MD5(self, older["raw"])
 
         old["hash"] = Utility.MD5(self, old["raw"])
         new["hash"] = Utility.MD5(self, new["raw"])
 
         if old["hash"] == new["hash"]:
             logger.info(f"No difference found in {filename} ({url})")
+
+            return
+        elif (allowRevert is False) and (older["hash"] == new["hash"]):
+            logger.info(f"Ignored revert found in {filename} ({url})")
 
             return
 
@@ -214,6 +242,7 @@ class SitRep:
 
         filename: str = source["filename"]
         url: str = source["url"]
+        allowRevert: bool = source.get("allowRevert", True)
 
         # Append the current timestamp to the end of the URL as an
         # attempt to prevent the Discord CDN from serving previously
@@ -221,11 +250,16 @@ class SitRep:
         timestamp: str = str(int(datetime.utcnow().timestamp()))
         imageUrl: str = f"{url}?{timestamp}"
 
+        older: Dict[str, Any] = source["older"]
         old: Dict[str, Any] = source["old"]
         new: Dict[str, Any] = source["new"]
 
         if old["raw"] == new["raw"]:
             logger.info(f"No difference found in {filename} ({url})")
+
+            return
+        elif (allowRevert is False) and (older["raw"] == new["raw"]):
+            logger.info(f"Ignored revert found in {filename} ({url})")
 
             return
 
@@ -255,15 +289,24 @@ class SitRep:
 
         filename: str = source["filename"]
         url: str = source["url"]
+        allowRevert: bool = source.get("allowRevert", True)
 
+        older: Dict[str, Any] = source["older"]
         old: Dict[str, Any] = source["old"]
         new: Dict[str, Any] = source["new"]
+
+        if allowRevert is False:
+            older["hash"] = Utility.MD5(self, older["raw"])
 
         old["hash"] = Utility.MD5(self, old["raw"])
         new["hash"] = Utility.MD5(self, new["raw"])
 
         if old["hash"] == new["hash"]:
             logger.info(f"No difference found in {filename} ({url})")
+
+            return
+        elif (allowRevert is False) and (older["hash"] == new["hash"]):
+            logger.info(f"Ignored revert found in {filename} ({url})")
 
             return
 

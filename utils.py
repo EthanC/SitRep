@@ -23,7 +23,7 @@ class Utility:
         logger.debug(f"GET {url}")
 
         try:
-            res: Response = httpx.get(url)
+            res: Response = httpx.get(url, follow_redirects=True)
             status: int = res.status_code
             data: str = res.text
 
@@ -136,10 +136,22 @@ class Utility:
 
             return False
 
-    def GetGistRaw(self: Any, gist: Gist, filename: str) -> Optional[str]:
+    def GetGistRaw(
+        self: Any, gist: Gist, filename: str, version: int = 0
+    ) -> Optional[str]:
         """Return the raw contents of the provided Gist."""
 
-        return Utility.GET(self, gist.files[filename].raw_url)
+        try:
+            if version > 0:
+                return Utility.GET(self, gist.history[version].files[filename].raw_url)
+
+            return Utility.GET(self, gist.files[filename].raw_url)
+        except IndexError as e:
+            # IndexError is expected to happen when checking for reverts
+            # on new Gists, no need to log as error.
+            logger.debug(f"Failed to get raw Gist {filename} v{version}, {e}")
+        except Exception as e:
+            logger.error(f"Failed to get raw Gist {filename} v{version}, {e}")
 
     def CreateGist(self: Any, source: Dict[str, Any]) -> None:
         """
