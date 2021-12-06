@@ -22,9 +22,11 @@ class Utility:
 
         logger.debug(f"GET {url}")
 
+        status: int = 0
+
         try:
             res: Response = httpx.get(url, follow_redirects=True)
-            status: int = res.status_code
+            status = res.status_code
             data: str = res.text
 
             res.raise_for_status()
