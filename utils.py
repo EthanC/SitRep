@@ -30,17 +30,6 @@ class Utility:
             data: str = res.text
 
             res.raise_for_status()
-        except HTTPError as e:
-            if isRetry is False:
-                logger.debug(f"(HTTP {status}) GET {url} failed, {e}... Retry in 10s")
-
-                sleep(10)
-
-                return Utility.GET(self, url, raw, True)
-
-            logger.error(f"(HTTP {status}) GET {url} failed, {e}")
-
-            return
         except TimeoutException as e:
             if isRetry is False:
                 logger.debug(f"GET {url} failed, {e}... Retry in 10s")
@@ -51,6 +40,17 @@ class Utility:
 
             # TimeoutException is common, no need to log as error
             logger.debug(f"GET {url} failed, {e}")
+
+            return
+        except HTTPError as e:
+            if isRetry is False:
+                logger.debug(f"(HTTP {status}) GET {url} failed, {e}... Retry in 10s")
+
+                sleep(10)
+
+                return Utility.GET(self, url, raw, True)
+
+            logger.error(f"(HTTP {status}) GET {url} failed, {e}")
 
             return
         except Exception as e:
